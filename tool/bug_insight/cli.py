@@ -23,12 +23,14 @@ MY_MODULES = ["战斗/角色/技能", "系统/UI/养成"]      # 「配置/资�
 
 
 def _load(data_dir: Path):
+    # parser负责读取原始公告，enrich负责把解析后的Bug补充为带分类标签的Record。
     sections, bugs = load_all(data_dir)
     return sections, bugs, enrich(bugs)
 
 
 def cmd_analyze(args) -> int:
     sections, bugs, records = _load(args.data)
+    # 校验是数据质量提示，不直接中断：即使条目数略有偏差，仍可生成可用报告。
     problems = validate(sections, bugs)
     export(records, args.out)
     (args.out / "分析报告.md").write_text(build_report(sections, records, problems), encoding="utf-8")
@@ -46,6 +48,7 @@ def cmd_analyze(args) -> int:
 
 def cmd_search(args) -> int:
     _, _, records = _load(args.data)
+    # 列表推导式中的条件全部为“且”关系；未提供参数时对应条件不生效。
     hits = [r for r in records
             if (not args.keyword or args.keyword in r.bug.full_text)
             and (not args.game or r.bug.game == args.game)
@@ -78,6 +81,7 @@ def cmd_sample(args) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
+        # 强制 UTF-8 输出，避免中文在 Windows 终端中出现 GBK/UTF-8 编码混用。
         sys.stdout.reconfigure(encoding="utf-8")
     p = argparse.ArgumentParser(prog="bug_insight", description="上线游戏问题修复记录分析")
     p.add_argument("--data", type=Path, default=ROOT, help="索引 md 所在目录")

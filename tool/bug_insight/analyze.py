@@ -39,6 +39,7 @@ class Record:
 def enrich(bugs: list[Bug]) -> list[Record]:
     out = []
     for b in bugs:
+        # full_text 包含正文和附属说明，因此分类和检索不会漏掉调整前后信息。
         text = b.full_text
         trig = match_tags(text, TRIGGERS)
         sym = match_tags(text, SYMPTOMS)
@@ -57,7 +58,7 @@ def enrich(bugs: list[Bug]) -> list[Record]:
 def export(records: list[Record], out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     rows = [r.to_dict() for r in records]
-    # utf-8-sig 让 Excel 直接打开不乱码
+    # utf-8-sig 会写入 BOM，Excel 在 Windows 上打开 CSV 时可正确识别中文。
     with (out_dir / "bugs.csv").open("w", encoding="utf-8-sig", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         w.writeheader()
@@ -77,6 +78,7 @@ def fixes_only(records: list[Record]) -> list[Record]:
 
 
 def count_by(records, key) -> Counter:
+    # key返回标量时逐条计数；返回列表时更新每个标签的计数，适合多标签维度。
     c = Counter()
     for r in records:
         v = key(r)
@@ -88,6 +90,7 @@ def count_by(records, key) -> Counter:
 
 
 def crosstab(records, row_key, col_key) -> dict[str, Counter]:
+    # 交叉表允许一条记录同时属于多个维度和现象，统计时按笛卡尔组合累加。
     t: dict[str, Counter] = defaultdict(Counter)
     for r in records:
         rows = row_key(r)

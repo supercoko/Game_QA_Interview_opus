@@ -27,6 +27,8 @@ GAME_BY_PREFIX = {
     "终末地": "终末地",
 }
 
+# 正则只负责识别 Markdown 的结构；具体条目含义由后面的分类规则处理。
+# 命名捕获组（例如 (?P<key>...)）可通过 m["key"] 取值，避免依赖编号位置。
 RE_SECTION = re.compile(r"^###\s+(?P<key>[^｜|]+)[｜|]\s*\[(?P<title>[^\]]+)\]\((?P<url>[^)]+)\)")
 RE_CATEGORY = re.compile(r"^\*\*(?P<cat>[^*]+)\*\*\s*$")
 RE_BULLET = re.compile(r"^- (?P<text>.+)$")
@@ -43,9 +45,9 @@ class Section:
     title: str
     url: str
     line_no: int
-    declared: int | None = None
-    official: bool = True
-    seq: int = 0        # 时间顺序，0 = 最早
+    declared: int | None = None  # 公告正文声明的条目数，用来与实际解析量核对
+    official: bool = True        # False 表示玩家整理帖，不纳入官方修复统计
+    seq: int = 0                 # 时间顺序，0 = 最早
 
 
 @dataclass
@@ -66,6 +68,7 @@ class Bug:
 
     @property
     def full_text(self) -> str:
+        # 检索和分类同时考虑正文及“调整前/调整后”附属说明。
         return self.text + ("；" + "；".join(self.details) if self.details else "")
 
 
@@ -91,6 +94,7 @@ def parse_file(path: Path) -> tuple[list[Section], list[Bug]]:
     current: Section | None = None
     category = "未分类"
 
+    # splitlines() 同时去掉换行符；enumerate(..., start=1) 保留源码行号用于定位。
     for line_no, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         line = raw.rstrip()
 
@@ -122,6 +126,7 @@ def parse_file(path: Path) -> tuple[list[Section], list[Bug]]:
 
         m = RE_SUBBULLET.match(raw)
         if m and bugs and bugs[-1].line_no >= current.line_no:
+            # 缩进子列表属于上一条 Bug 的补充说明，不创建独立 Bug。
             bugs[-1].details.append(m["text"].strip())
             continue
 

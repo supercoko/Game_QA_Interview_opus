@@ -30,7 +30,8 @@ class Tag:
         if not self.pattern.search(text):
             return False
         if self.exclude and self.exclude.search(text):
-            # exclude 只在去掉排除片段后仍无命中时生效
+            # 先检测到排除词，再把排除词片段删掉；如果该片段之前只是触发词，
+            # 删除后不再命中 pattern 时，本条规则仍会判定为不匹配。
             stripped = self.exclude.sub("", text)
             return bool(self.pattern.search(stripped))
         return True
@@ -243,10 +244,12 @@ STATIC_CHECKABLE = _re(
 
 
 def match_tags(text: str, tags: list[Tag]) -> list[str]:
+    # 一条文本可同时匹配多条规则；返回的是规则 id 列表，而不是互斥的单一标签。
     return [t.id for t in tags if t.match(text)]
 
 
 def severity(symptoms: list[str], text: str) -> str:
+    # 严重度按优先级依次判断：阻断 > 功能数据 > 表现界面音频 > 文本 > 未识别。
     display_only = bool(re.search(r"不影响实际(技能)?效果|实际效果不变|该问题不影响", text))
     if "block" in symptoms or ("perf" in symptoms and re.search(r"闪退|崩溃|无法进入游戏", text)):
         return "S1"
