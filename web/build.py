@@ -158,6 +158,7 @@ def page(title, description, body, *, article=False):
   <meta name="description" content="{escape(description)}">
   <meta name="theme-color" content="#f8f7f3">
   <title>{escape(title)}</title>
+  <script src="{base}assets/theme.js"></script>
   <link rel="stylesheet" href="{base}assets/style.css">
   {scripts}
 </head>
@@ -166,10 +167,19 @@ def page(title, description, body, *, article=False):
   <header class="site-header">
     <div class="shell header-inner">
       <a class="brand" href="{base}index.html"><span class="brand-mark" aria-hidden="true">QA</span><span>{SITE_TITLE}</span></a>
-      <nav class="top-nav" aria-label="资料分类">
-        <a href="{base}index.html#neon">Neon分析</a>
-        <a href="{base}index.html#plan">方案</a>
-      </nav>
+      <div class="header-controls">
+        <nav class="top-nav" aria-label="资料分类">
+          <a href="{base}index.html#neon">Neon分析</a>
+          <a href="{base}index.html#plan">方案</a>
+        </nav>
+        <div class="theme-picker" hidden>
+          <select id="site-theme" aria-label="站点主题">
+            <option value="system">跟随系统</option>
+            <option value="light">日间模式</option>
+            <option value="dark">夜间模式</option>
+          </select>
+        </div>
+      </div>
     </div>
   </header>
   {body}
@@ -258,7 +268,7 @@ def build(destination):
     (destination / "articles").mkdir(parents=True, exist_ok=True)
     (destination / "assets").mkdir(exist_ok=True)
     if destination != WEB:
-        for asset in ("style.css", "search.js"):
+        for asset in ("style.css", "search.js", "theme.js"):
             shutil.copyfile(WEB / "assets" / asset, destination / "assets" / asset)
 
     index = []
